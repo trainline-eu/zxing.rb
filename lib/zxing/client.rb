@@ -11,12 +11,23 @@ module ZXing
       DRbObject.new_with_uri("druby://127.0.0.1:#{port}")
     end
 
+    def self.remote_client
+      @remote_client
+    end
+
+    def self.kill!
+      if remote_client
+        Process.kill(:INT, remote_client.pid)
+      end
+    end
+
     private
 
     def self.setup_drb_server(port)
-      remote_client = IO.popen("#{ZXing::BIN} #{port}")
+      @remote_client = IO.popen("#{ZXing::BIN} #{port}")
+
       sleep 0.5 until responsive?(port)
-      at_exit { Process.kill(:INT, remote_client.pid) }
+      at_exit { kill! }
     end
 
     def self.responsive?(port)
