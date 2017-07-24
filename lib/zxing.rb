@@ -21,8 +21,8 @@ module ZXing
   #   path = "./no_encoded_image.png"
   #   ZXing.decode(path) #=> nil
   #
-  def self.decode(file)
-    decoder.decode normalize(file)
+  def self.decode(file, retry_once: false)
+    handle_lost_connection(retry_once) { decoder.decode normalize(file) }
   end
 
   ##
@@ -35,8 +35,8 @@ module ZXing
   #   path = "./no_encoded_image.png"
   #   ZXing.decode(path) #=> ZXing::UndecodableError
   #
-  def self.decode!(file)
-    decoder.decode! normalize(file)
+  def self.decode!(file, retry_once: false)
+    handle_lost_connection(retry_once) { decoder.decode! normalize(file) }
   end
 
   ##
@@ -55,8 +55,8 @@ module ZXing
   #   path = "./no_encoded_image.png"
   #   ZXing.decode_all(path) #=> nil
   #
-  def self.decode_all(file)
-    decoder.decode_all normalize(file)
+  def self.decode_all(file, retry_once: false)
+    handle_lost_connection(retry_once) { decoder.decode_all normalize(file) }
   end
 
   ##
@@ -69,21 +69,29 @@ module ZXing
   #   path = "./no_encoded_image.png"
   #   ZXing.decode(path) #=> ZXing::UndecodableError
   #
-  def self.decode_all!(file)
-    decoder.decode_all! normalize(file)
+  def self.decode_all!(file, retry_once: false)
+    handle_lost_connection(retry_once) { decoder.decode_all! normalize(file) }
   end
 
-  def self.qrcode_decode(file)
-    decoder.qrcode_decode normalize(file)
+  def self.qrcode_decode(file, retry_once: false)
+    handle_lost_connection(retry_once) { decoder.qrcode_decode normalize(file) }
   end
-
-  private
 
   def self.decoder
-    @@decoder ||= Client.new
+    @decoder ||= Client.new
   end
 
   def self.normalize(file)
     file.respond_to?(:path) ? file.path : file
+  end
+
+  def self.handle_lost_connection(retry_once)
+    decoder # ensure the connection is opened (so that the port check works)
+
+    if retry_once && !ZXing::Client.responsive?(ZXing::Client.port)
+      @decoder = Client.new
+    end
+
+    yield
   end
 end

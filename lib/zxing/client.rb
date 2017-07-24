@@ -5,14 +5,22 @@ module ZXing
   BIN = File.expand_path('../../../bin/zxing', __FILE__)
 
   class Client
+    def self.remote_client; @remote_client; end
+    def self.port; @port; end
+
     def self.new
-      port = ENV['ZXING_PORT'] || find_available_port
-      setup_drb_server(port) unless ENV['ZXING_PORT'] && responsive?(port)
-      DRbObject.new_with_uri("druby://127.0.0.1:#{port}")
+      @port = ENV['ZXING_PORT'] || find_available_port
+      setup_drb_server(@port) unless ENV['ZXING_PORT'] && responsive?(@port)
+      DRbObject.new_with_uri("druby://127.0.0.1:#{@port}")
     end
 
-    def self.remote_client
-      @remote_client
+    def self.responsive?(port)
+      socket = TCPSocket.open('127.0.0.1', port)
+      true
+    rescue Errno::ECONNREFUSED
+      false
+    ensure
+      socket.close if socket
     end
 
     def self.kill!
@@ -28,15 +36,6 @@ module ZXing
 
       sleep 0.5 until responsive?(port)
       at_exit { kill! }
-    end
-
-    def self.responsive?(port)
-      socket = TCPSocket.open('127.0.0.1', port)
-      true
-    rescue Errno::ECONNREFUSED
-      false
-    ensure
-      socket.close if socket
     end
 
     def self.find_available_port
