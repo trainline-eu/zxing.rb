@@ -80,7 +80,11 @@ module ZXing
   private
 
   def self.decoder
-    @@decoder ||= Client.new
+    if ENV['ZXING_PORT'] && !Client.responsive?(ENV['ZXING_PORT'])
+      @@decoder = Client.new
+    else
+      @@decoder ||= Client.new
+    end
   end
 
   def self.normalize(file)
